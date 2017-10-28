@@ -53,23 +53,28 @@ License: MIT License
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions: The above copyright notice and this
+permission notice shall be included in all copies or substantial portions of
+the Software.  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
 """
 
-import imp
+
+try:
+    import importlib as imp
+except:
+    import imp
 import sys
 from timeit import Timer
-from optparse import OptionParser, OptionGroup, Values
+
+from optparse import OptionParser
 
 from sqlalchemy.sql import text
 from sqlalchemy.exc import OperationalError
@@ -79,14 +84,18 @@ from cjklib import dictionary
 from cjklib.reading import ReadingFactory
 from cjklib import dbconnector
 
-# Several example search requests, spanning headwords, readings and translations
+# Several example search requests, spanning headwords, readings and
+# translations
+
 SEARCH_REQUESTS = ['Beijing', '%Beijing%', 'Bei3jing1', 'Tokyo', 'Tiananmen',
                    'to run', 'dui_qi', '南京', 'TÜTE', 'とうきょう', '%國hua',
                    'zhishi', 'knowledge']
 
+
 def runRequest(dictInstance, requestList, method='getFor'):
     for request, options in requestList:
         getattr(dictInstance, method)(request, **options)
+
 
 def runTests(tests, databases, registerUnicode, iteration=10):
     f = ReadingFactory()
@@ -147,6 +156,7 @@ def runTests(tests, databases, registerUnicode, iteration=10):
 
     return timing
 
+
 def printResults(timing):
     # check that all results use the same dictionaries
     assert timing and all((list(timing.values())[0].keys() == list(runTime.keys()))
@@ -168,6 +178,7 @@ def printResults(timing):
                                for methodTime in list(runTime.values())))
 
         print("%d: %s" % (testNo, '\t'.join(("%f" % t) for t in results)))
+
 
 def buildParser():
     usage = "%prog [options]\n%prog reindex DB_FILE [--registerUnicode]"
@@ -209,6 +220,7 @@ def buildParser():
 
     return parser
 
+
 def recreateIndex(database, registerUnicode=False):
     connection = {'sqlalchemy.url': 'sqlite:///%s' % database,
                   'attach': ['cjklib'], 'registerUnicode': registerUnicode}
@@ -229,6 +241,7 @@ def recreateIndex(database, registerUnicode=False):
             db.execute(text(("CREATE INDEX %(dict)s__Reading ON %(dict)s"
                              " ('READING' COLLATE NOCASE)")
                             % {'dict': dictName}))
+
 
 def main():
     parser = buildParser()
