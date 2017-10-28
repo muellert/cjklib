@@ -4,3 +4,5 @@ test/downloads
 *.egg-info
 env
 .noseids
+.tox
+.ropeproject
