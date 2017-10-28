@@ -113,7 +113,7 @@ class TableBuilder(object):
             stderr
         """
         self.db = options.get('dbConnectInst')
-        for option, defaultValue in self.getDefaultOptions().items():
+        for option, defaultValue in list(self.getDefaultOptions().items()):
             optionValue = options.get(option, defaultValue)
             if not hasattr(optionValue, '__call__'):
                 setattr(self, option, copy.deepcopy(optionValue))
@@ -284,7 +284,7 @@ class EntryGeneratorBuilder(TableBuilder):
     def getEntryDict(self, generator):
         entryList = []
 
-        firstEntry = generator.next()
+        firstEntry = next(generator)
         if type(firstEntry) == type(dict()):
             entryList.append(firstEntry)
 
@@ -323,9 +323,9 @@ class EntryGeneratorBuilder(TableBuilder):
         for newEntry in generator:
             try:
                 table.insert(newEntry).execute()
-            except IntegrityError, e:
+            except IntegrityError as e:
                 if not(self.quiet):
-                    warn(unicode(e))
+                    warn(str(e))
                 raise
 
         for index in self.buildIndexObjects(self.PROVIDES, self.INDEX_KEYS):
@@ -342,7 +342,7 @@ class UnihanGenerator:
     keySet = None
     """Set of keys of the Unihan table."""
 
-    ENTRY_REGEX = re.compile(ur"U\+([0-9A-F]+)\s+(\w+)\s+(.+)\s*$")
+    ENTRY_REGEX = re.compile(r"U\+([0-9A-F]+)\s+(\w+)\s+(.+)\s*$")
 
     UNIHAN_FILE_MEMBERS = ['Unihan_DictionaryIndices.txt',
         'Unihan_DictionaryLikeData.txt', 'Unihan_NormativeProperties.txt',
@@ -389,7 +389,7 @@ class UnihanGenerator:
         while True:
             # synchronize all handles of sorted code points, break if we read
             #   past the current entryIndex
-            for fileName, handle in handleDict.items():
+            for fileName, handle in list(handleDict.items()):
                 # check if we already red something from the current handle
                 if fileName in handleReadBuffer:
                     redIndex, key, value = handleReadBuffer[fileName]
@@ -446,7 +446,7 @@ class UnihanGenerator:
 
             # next entry with smallest index
             entryIndex = min(
-                [redIndex for redIndex, _, _ in handleReadBuffer.values()])
+                [redIndex for redIndex, _, _ in list(handleReadBuffer.values())])
             entry = {}
 
     def getHandles(self):
@@ -459,11 +459,11 @@ class UnihanGenerator:
         handles = {}
         import zipfile
         if len(self.fileNames) == 1 and zipfile.is_zipfile(self.fileNames[0]):
-            import StringIO
+            import io
             z = zipfile.ZipFile(self.fileNames[0], "r")
             for member in z.namelist():
                 handles[member] \
-                    = StringIO.StringIO(z.read(member).decode('utf-8'))
+                    = io.StringIO(z.read(member).decode('utf-8'))
         else:
             import codecs
             for member in self.fileNames:
@@ -485,7 +485,7 @@ class UnihanGenerator:
                 warn("Looking for all keys in Unihan database...")
             self.keySet = set()
             handleDict = self.getHandles()
-            for handle in handleDict.values():
+            for handle in list(handleDict.values()):
                 for line in handle:
                     # ignore comments
                     if line.startswith('#'):
@@ -524,7 +524,7 @@ class UnihanBuilder(EntryGeneratorBuilder):
 
         def generator(self):
             """Provides all data of one character per entry."""
-            columns = self.unihanGenerator.keys()
+            columns = list(self.unihanGenerator.keys())
             for char, entryDict in self.unihanGenerator.generator():
                 newEntryDict = {UnihanBuilder.CHARACTER_COLUMN: char}
                 for column in columns:
@@ -642,7 +642,7 @@ class UnihanBuilder(EntryGeneratorBuilder):
     def build(self):
         generator = self.getUnihanGenerator()
         self.COLUMNS = [self.CHARACTER_COLUMN]
-        self.COLUMNS.extend(generator.keys())
+        self.COLUMNS.extend(list(generator.keys()))
 
         EntryGeneratorBuilder.build(self)
 
@@ -674,7 +674,7 @@ class Kanjidic2Builder(EntryGeneratorBuilder):
 
             if name == 'character':
                 entryDict = {}
-                for tag, function in self.tagDict.values():
+                for tag, function in list(self.tagDict.values()):
                     if tag in self.currentEntry:
                         entryDict[tag] = function(self.currentEntry[tag])
                 self.entryList.append(entryDict)
@@ -694,7 +694,7 @@ class Kanjidic2Builder(EntryGeneratorBuilder):
                     idx = self.currentElement.index('character') + 1
                     tagHierachy = tuple(self.currentElement[idx:])
 
-                    key = (tagHierachy, frozenset(attrs.items()))
+                    key = (tagHierachy, frozenset(list(attrs.items())))
                     if key in self.tagDict:
                         self.targetTagTopElement = name
                         self.targetTag, _ = self.tagDict[key]
@@ -725,9 +725,9 @@ class Kanjidic2Builder(EntryGeneratorBuilder):
             """
             import gzip
             if self.dataPath.endswith('.gz'):
-                import StringIO
+                import io
                 z = gzip.GzipFile(self.dataPath, 'r')
-                handle = StringIO.StringIO(z.read())
+                handle = io.StringIO(z.read())
             else:
                 import codecs
                 handle = codecs.open(self.dataPath, 'r')
@@ -746,7 +746,7 @@ class Kanjidic2Builder(EntryGeneratorBuilder):
 
             for entry in entryList:
                 if self.wideBuild or 'ChineseCharacter' not in entry \
-                    or entry['ChineseCharacter'] < u'\U00010000':
+                    or entry['ChineseCharacter'] < '\U00010000':
                     yield(entry)
 
     PROVIDES = 'Kanjidic'
@@ -804,7 +804,7 @@ class Kanjidic2Builder(EntryGeneratorBuilder):
             included.
         """
         super(Kanjidic2Builder, self).__init__(**options)
-        tags = [tag for tag, _ in self.KANJIDIC_TAG_MAPPING.values()]
+        tags = [tag for tag, _ in list(self.KANJIDIC_TAG_MAPPING.values())]
         self.COLUMNS = tags
         self.PRIMARY_KEYS = [self.CHARACTER_COLUMN]
 
@@ -966,7 +966,7 @@ class CharacterRadicalBuilder(UnihanDerivedBuilder):
     """
     class RadicalExtractor:
         """Generates the radical to character mapping from the Unihan table."""
-        RADICAL_REGEX = re.compile(ur"(\d+)\.(\d+)")
+        RADICAL_REGEX = re.compile(r"(\d+)\.(\d+)")
 
         def __init__(self, rsEntries, quiet=False):
             """
@@ -1045,11 +1045,11 @@ class CharacterVariantBuilder(EntryGeneratorBuilder):
         """Generates the character to variant mapping from the Unihan table."""
 
         # Regular expressions for different entry types
-        HEX_INDEX_REGEX = re.compile(ur"\s*U\+([0-9A-F]+)\s*$")
-        MULT_HEX_INDEX_REGEX = re.compile(ur"\s*(U\+([0-9A-F]+)( |(?=$)))+\s*$")
-        MULT_HEX_INDEX_FIND_REGEX = re.compile(ur"U\+([0-9A-F]+)(?: |(?=$))")
-        SEMANTIC_REGEX = re.compile(ur"(U\+[0-9A-F]+(<\S+)?( |(?=$)))+$")
-        SEMANTIC_FIND_REGEX = re.compile(ur"U\+([0-9A-F]+)(?:<\S+)?(?: |(?=$))")
+        HEX_INDEX_REGEX = re.compile(r"\s*U\+([0-9A-F]+)\s*$")
+        MULT_HEX_INDEX_REGEX = re.compile(r"\s*(U\+([0-9A-F]+)( |(?=$)))+\s*$")
+        MULT_HEX_INDEX_FIND_REGEX = re.compile(r"U\+([0-9A-F]+)(?: |(?=$))")
+        SEMANTIC_REGEX = re.compile(r"(U\+[0-9A-F]+(<\S+)?( |(?=$)))+$")
+        SEMANTIC_FIND_REGEX = re.compile(r"U\+([0-9A-F]+)(?:<\S+)?(?: |(?=$))")
         #ZVARIANT_REGEX = re.compile(ur"\s*U\+([0-9A-F]+)(?:\:\S+)?\s*$")
 
         VARIANT_REGEX_MAPPING = {'C': (HEX_INDEX_REGEX, HEX_INDEX_REGEX),
@@ -1155,7 +1155,7 @@ class CharacterVariantBuilder(EntryGeneratorBuilder):
 
     def getGenerator(self):
         # create generator
-        keys = self.COLUMN_SOURCE_ABBREV.keys()
+        keys = list(self.COLUMN_SOURCE_ABBREV.keys())
         variantTypes = [self.COLUMN_SOURCE_ABBREV[key] for key in keys]
         selectKeys = ['ChineseCharacter']
         selectKeys.extend(keys)
@@ -1170,7 +1170,7 @@ class CharacterVariantBuilder(EntryGeneratorBuilder):
     def build(self):
         if not self.quiet:
             warn("Reading table content from Unihan columns '%s'"
-                % "', '".join(self.COLUMN_SOURCE_ABBREV.keys()))
+                % "', '".join(list(self.COLUMN_SOURCE_ABBREV.keys())))
         super(CharacterVariantBuilder, self).build()
 
 
@@ -1202,7 +1202,7 @@ class UnihanCharacterSetBuilder(EntryGeneratorBuilder):
 
 
 class IICoreSetBuilder(UnihanCharacterSetBuilder):
-    u"""
+    """
     Builds a simple list of all characters in *IICore*
     (Unicode *International Ideograph Core)*.
 
@@ -1440,7 +1440,7 @@ class CharacterXHPCReadingBuilder(UnihanDerivedBuilder):
         Generates the Xiandai Hanyu Pinlu Cidian Pinyin syllables from the
         Unihan table.
         """
-        SPLIT_REGEX = re.compile(ur"([a-zü]+[1-5])\(([0-9]+)\)")
+        SPLIT_REGEX = re.compile(r"([a-zü]+[1-5])\(([0-9]+)\)")
 
         def __init__(self, readingEntries, quiet=False):
             """
@@ -1461,7 +1461,7 @@ class CharacterXHPCReadingBuilder(UnihanDerivedBuilder):
                 if not self.quiet and len(readingDict) < len(readingList):
                     warn('reading information of character ' + character \
                         + ' is inconsistent: ' + ', '.join(readingList))
-                for reading, frequency in readingDict.items():
+                for reading, frequency in list(readingDict.items()):
                     yield(character, reading.lower(), frequency)
 
     PROVIDES = 'CharacterXHPCPinyin'
@@ -1483,10 +1483,10 @@ class CharacterDiacriticPinyinBuilder(CharacterReadingBuilder):
         """
         SPLIT_REGEX = re.compile(r"[0-9,.*]+:(\S+)")
 
-        TONEMARK_VOWELS = [u'a', u'e', u'i', u'o', u'u', u'ü', u'n', u'm', u'r',
-            u'ê']
+        TONEMARK_VOWELS = ['a', 'e', 'i', 'o', 'u', 'ü', 'n', 'm', 'r',
+            'ê']
 
-        TONEMARK_MAP = {u'\u0304': 1, u'\u0301': 2, u'\u030c': 3, u'\u0300': 4}
+        TONEMARK_MAP = {'\u0304': 1, '\u0301': 2, '\u030c': 3, '\u0300': 4}
 
         def __init__(self, readingEntries, quiet=False):
             """
@@ -1498,8 +1498,8 @@ class CharacterDiacriticPinyinBuilder(CharacterReadingBuilder):
             """
             self.readingEntries = readingEntries
             self.quiet = quiet
-            self._toneMarkRegex = re.compile(u'[' \
-                + ''.join(self.TONEMARK_MAP.keys()) + ']')
+            self._toneMarkRegex = re.compile('[' \
+                + ''.join(list(self.TONEMARK_MAP.keys())) + ']')
 
         def convertTonemark(self, entity):
             """
@@ -1514,7 +1514,7 @@ class CharacterDiacriticPinyinBuilder(CharacterReadingBuilder):
             """
             import unicodedata
             # get decomposed Unicode string, e.g. ``'ū'`` to ``'u\u0304'``
-            entity = unicodedata.normalize("NFD", unicode(entity))
+            entity = unicodedata.normalize("NFD", str(entity))
             # find character with tone marker
             matchObj = self._toneMarkRegex.search(entity)
             if matchObj:
@@ -1573,7 +1573,7 @@ class CharacterPinyinAdditionalBuilder(EntryGeneratorBuilder):
 
     def getGenerator(self):
         tableEntries = [
-            (u'〇', 'ling2'), # as mentioned in kHanyuPinlu, kXHC1983
+            ('〇', 'ling2'), # as mentioned in kHanyuPinlu, kXHC1983
             ]
         return iter(tableEntries)
 
@@ -1687,9 +1687,9 @@ class CSVFileLoader(TableBuilder):
 
             try:
                 self.db.execute(table.insert(), entries)
-            except IntegrityError, e:
+            except IntegrityError as e:
                 if not self.quiet:
-                    warn(unicode(e))
+                    warn(str(e))
                     warn('Run builder with option \'--entrywise=True\''
                         ' to find violating entry')
                 raise
@@ -1707,9 +1707,9 @@ class CSVFileLoader(TableBuilder):
 
                 try:
                     table.insert(entryDict).execute()
-                except IntegrityError, e:
+                except IntegrityError as e:
                     if not(self.quiet):
-                        warn(unicode(e))
+                        warn(str(e))
                     raise
 
 
@@ -1989,7 +1989,7 @@ class NarrowBuildCSVFileLoader(CSVFileLoader):
 
     def filterEntry(self, entryDict):
         if (entryDict and 'ChineseCharacter' in entryDict
-            and entryDict['ChineseCharacter'] > u'\U00010000'):
+            and entryDict['ChineseCharacter'] > '\U00010000'):
             return None
 
         return entryDict
@@ -2025,8 +2025,8 @@ class CharacterDecompositionBuilder(NarrowBuildCSVFileLoader):
             for i in range(len(decompositionChars)):
                 # every char outside the BMP must be a unified ideograph
                 #   chose the placeholder
-                if decompositionChars[i] > u'\U00010000':
-                    decompositionChars[i] = u'？'
+                if decompositionChars[i] > '\U00010000':
+                    decompositionChars[i] = '？'
 
             entryDict['Decomposition'] = ''.join(decompositionChars)
 
@@ -2135,7 +2135,7 @@ class StrokeCountBuilder(EntryGeneratorBuilder):
             # Cjklib's stroke count method uses the stroke order information as
             #   long as this table doesn't exist.
             strokeCountDict = self.cjk.getStrokeCountDict()
-            for char, glyph in strokeCountDict.keys():
+            for char, glyph in list(strokeCountDict.keys()):
                 try:
                     strokeCount = strokeCountDict[(char, glyph)]
                     yield({'ChineseCharacter': char, 'StrokeCount': strokeCount,
@@ -2220,7 +2220,7 @@ class CombinedStrokeCountBuilder(StrokeCountBuilder):
                 values wrt Unihan vs. own data.
             :raise NoInformationError: if decomposition is incomplete
             """
-            if char == u'？':
+            if char == '？':
                 # we have an incomplete decomposition, can't build
                 raise exception.NoInformationError("incomplete decomposition")
 
@@ -2234,7 +2234,7 @@ class CombinedStrokeCountBuilder(StrokeCountBuilder):
                             accumulatedStrokeCount = 0
 
                             for entry in decomposition:
-                                if type(entry) == types.TupleType:
+                                if type(entry) == tuple:
                                     component, componentGlyph = entry
 
                                     accumulatedStrokeCount += \
@@ -2315,7 +2315,7 @@ class CombinedStrokeCountBuilder(StrokeCountBuilder):
             #   information missing though in some cases.
 
             # remove glyphs we already have an entry for
-            self.characterSet.difference_update(strokeCountDict.keys())
+            self.characterSet.difference_update(list(strokeCountDict.keys()))
 
             # get character decompositions
             decompositionDict = self.cjk.getDecompositionEntriesDict()
@@ -2346,7 +2346,7 @@ class CombinedStrokeCountBuilder(StrokeCountBuilder):
             for one entry per character.
             """
             charStrokeCounts = {}
-            for key, strokeCount in strokeCountDict.items():
+            for key, strokeCount in list(strokeCountDict.items()):
                 char, _ = key
                 if char not in charStrokeCounts:
                     charStrokeCounts[char] = []
@@ -2437,7 +2437,7 @@ class CharacterComponentLookupBuilder(EntryGeneratorBuilder):
                     for decomposition in decompositionDict[(char, glyph)]:
                         componentDict[(char, glyph)].update(
                             [entry for entry in decomposition \
-                                if type(entry) == types.TupleType])
+                                if type(entry) == tuple])
 
             componentSet = set()
             for component, componentGlyph in componentDict[(char, glyph)]:
@@ -2537,7 +2537,7 @@ class CharacterRadicalStrokeCountBuilder(EntryGeneratorBuilder):
             return self.radicalForms[form]
 
         def filterForms(self, formSet):
-            u"""
+            """
             Filters the set of given radical form entries to return only one
             single occurrence of a radical.
 
@@ -2557,7 +2557,7 @@ class CharacterRadicalStrokeCountBuilder(EntryGeneratorBuilder):
 
         def getEntries(self, char, glyph, strokeCountDict, decompositionDict,
             entriesDict):
-            u"""
+            """
             Gets all radical/residual stroke count combinations from the given
             decomposition.
 
@@ -2569,7 +2569,7 @@ class CharacterRadicalStrokeCountBuilder(EntryGeneratorBuilder):
             """
             def getCharLayout(mainCharacterLayout, mainLayoutPosition,
                 subCharLayout, subLayoutPosition):
-                u"""
+                """
                 Returns the character layout for the radical form within the
                 component with layout subCharLayout itself belonging to a parent
                 char with layout mainCharacterLayout.
@@ -2581,36 +2581,36 @@ class CharacterRadicalStrokeCountBuilder(EntryGeneratorBuilder):
                 (⿰, 0) would be returned.
                 """
                 specialReturn = {
-                    (u'⿰', 0, u'⿰', 0): (u'⿰', 0),
-                    (u'⿰', 1, u'⿰', 1): (u'⿰', 1),
-                    (u'⿱', 0, u'⿱', 0): (u'⿱', 0),
-                    (u'⿱', 1, u'⿱', 1): (u'⿱', 1),
-                    (u'⿲', 0, u'⿲', 0): (u'⿰', 0),
-                    (u'⿲', 2, u'⿲', 2): (u'⿰', 1),
-                    (u'⿳', 0, u'⿳', 0): (u'⿱', 0),
-                    (u'⿳', 2, u'⿳', 2): (u'⿱', 0),
-                    (u'⿲', 0, u'⿰', 0): (u'⿰', 0),
-                    (u'⿲', 2, u'⿰', 1): (u'⿰', 1),
-                    (u'⿰', 0, u'⿲', 0): (u'⿰', 0),
-                    (u'⿰', 1, u'⿲', 1): (u'⿰', 1),
-                    (u'⿳', 0, u'⿱', 0): (u'⿱', 0),
-                    (u'⿳', 2, u'⿱', 1): (u'⿱', 1),
-                    (u'⿱', 0, u'⿳', 0): (u'⿱', 0),
-                    (u'⿱', 1, u'⿳', 2): (u'⿱', 1),
+                    ('⿰', 0, '⿰', 0): ('⿰', 0),
+                    ('⿰', 1, '⿰', 1): ('⿰', 1),
+                    ('⿱', 0, '⿱', 0): ('⿱', 0),
+                    ('⿱', 1, '⿱', 1): ('⿱', 1),
+                    ('⿲', 0, '⿲', 0): ('⿰', 0),
+                    ('⿲', 2, '⿲', 2): ('⿰', 1),
+                    ('⿳', 0, '⿳', 0): ('⿱', 0),
+                    ('⿳', 2, '⿳', 2): ('⿱', 0),
+                    ('⿲', 0, '⿰', 0): ('⿰', 0),
+                    ('⿲', 2, '⿰', 1): ('⿰', 1),
+                    ('⿰', 0, '⿲', 0): ('⿰', 0),
+                    ('⿰', 1, '⿲', 1): ('⿰', 1),
+                    ('⿳', 0, '⿱', 0): ('⿱', 0),
+                    ('⿳', 2, '⿱', 1): ('⿱', 1),
+                    ('⿱', 0, '⿳', 0): ('⿱', 0),
+                    ('⿱', 1, '⿳', 2): ('⿱', 1),
                     }
                 entry = (mainCharacterLayout, mainLayoutPosition, subCharLayout,
                     subLayoutPosition)
                 if entry in specialReturn:
                     return specialReturn[entry]
-                elif subCharLayout == u'⿻':
+                elif subCharLayout == '⿻':
                     # default value for complex position
-                    return (u'⿻', 0)
+                    return ('⿻', 0)
                 elif mainCharacterLayout == None:
                     # main layout
                     return subCharLayout, subLayoutPosition
                 else:
                     # radical component has complex position
-                    return (u'⿻', 0)
+                    return ('⿻', 0)
 
             # if no decomposition available then there is nothing to do
             if (char, glyph) not in decompositionDict:
@@ -2644,7 +2644,7 @@ class CharacterRadicalStrokeCountBuilder(EntryGeneratorBuilder):
                             raise ValueError(
                                 "malformed IDS for character %r" % char)
 
-                        if type(entry) != types.TupleType:
+                        if type(entry) != tuple:
                             # ideographic description character found, derive
                             #   layout from IDS and parent character and store
                             #   in layout stack to be consumed by following
@@ -2701,7 +2701,7 @@ class CharacterRadicalStrokeCountBuilder(EntryGeneratorBuilder):
                     charactersSeen = []
                     for entry in decomposition:
                         # get Chinese characters
-                        if type(entry) == types.TupleType:
+                        if type(entry) == tuple:
                             # fill up already seen characters with next found
                             for seenEntry in residualCharacters:
                                 residualCharacters[seenEntry].append(entry)
@@ -2728,7 +2728,7 @@ class CharacterRadicalStrokeCountBuilder(EntryGeneratorBuilder):
                             # all stroke counts available
                             del componentEntry['Component']
                             entriesDict[(char, glyph)].add(
-                                frozenset(componentEntry.items()))
+                                frozenset(list(componentEntry.items())))
 
                 # check that keys are distinct
                 entrySet = set()
@@ -2821,7 +2821,7 @@ class CharacterResidualStrokeCountBuilder(EntryGeneratorBuilder):
                 dbConnectInst=dbConnectInst)
 
         def getEntries(self, char, glyph, radicalDict):
-            u"""
+            """
             Gets a list of radical residual entries. For multiple radical
             occurrences (e.g. 伦) only returns the residual stroke count for the
             "main" radical form.
@@ -2909,7 +2909,7 @@ class CombinedCharacterResidualStrokeCountBuilder(
         """
         Generates the character to residual stroke count mapping.
         """
-        RADICAL_REGEX = re.compile(ur"(\d+)\.(\d+)")
+        RADICAL_REGEX = re.compile(r"(\d+)\.(\d+)")
 
         def __init__(self, tableEntries, preferredBuilder, quiet=False):
             """
@@ -3196,14 +3196,14 @@ class EDICTFormatBuilder(EntryGeneratorBuilder):
 
         if self.fileType == '.zip' \
             or not self.fileType and zipfile.is_zipfile(filePath):
-            import StringIO
+            import io
             z = zipfile.ZipFile(filePath, 'r')
             archiveContent = self.getArchiveContentName(z.namelist(), filePath)
-            return StringIO.StringIO(z.read(archiveContent)\
+            return io.StringIO(z.read(archiveContent)\
                 .decode(self.ENCODING))
         elif self.fileType in ('.tar', '.tar.bz2', '.tar.gz') \
             or not self.fileType and tarfile.is_tarfile(filePath):
-            import StringIO
+            import io
             mode = ''
             ending = self.fileType or filePath
             if ending.endswith('bz2'):
@@ -3213,13 +3213,13 @@ class EDICTFormatBuilder(EntryGeneratorBuilder):
             z = tarfile.open(filePath, 'r' + mode)
             archiveContent = self.getArchiveContentName(z.getnames(), filePath)
             fileObj = z.extractfile(archiveContent)
-            return StringIO.StringIO(fileObj.read().decode(self.ENCODING))
+            return io.StringIO(fileObj.read().decode(self.ENCODING))
         elif self.fileType == '.gz' \
             or not self.fileType and filePath.endswith('.gz'):
             import gzip
-            import StringIO
+            import io
             z = gzip.GzipFile(filePath, 'r')
-            return StringIO.StringIO(z.read().decode(self.ENCODING))
+            return io.StringIO(z.read().decode(self.ENCODING))
         else:
             import codecs
             return codecs.open(filePath, 'r', self.ENCODING)
@@ -3322,19 +3322,19 @@ class EDICTFormatBuilder(EntryGeneratorBuilder):
                     fts3Data.insert('rowid', 0)
                 else:
                     simpleData = dict([(key, value) \
-                        for key, value in newEntry.items() \
+                        for key, value in list(newEntry.items()) \
                         if key in simpleColumns])
                     fts3Data = dict([(key, value) \
-                        for key, value in newEntry.items() \
+                        for key, value in list(newEntry.items()) \
                         if key in fullTextColumns])
                     fts3Data['rowid'] = func.last_insert_rowid()
 
                 # table with non-FTS3 data
                 simpleTable.insert(simpleData).execute()
                 fts3Table.insert(fts3Data).execute()
-            except IntegrityError, e:
+            except IntegrityError as e:
                 if not self.quiet:
-                    warn(unicode(e))
+                    warn(str(e))
                     #warn(unicode(insertStatement))
                 raise
 
@@ -3399,9 +3399,9 @@ class EDICTFormatBuilder(EntryGeneratorBuilder):
             for newEntry in generator:
                 try:
                     table.insert(newEntry).execute()
-                except IntegrityError, e:
+                except IntegrityError as e:
                     if not self.quiet:
-                        warn(unicode(e))
+                        warn(str(e))
                         #warn(unicode(insertStatement))
                     raise
         else:
@@ -3966,17 +3966,17 @@ class SimpleWenlinFormatBuilder(EntryGeneratorBuilder):
 
         if (self.fileType == '.zip'
             or not self.fileType and zipfile.is_zipfile(filePath)):
-            import StringIO
+            import io
             z = zipfile.ZipFile(filePath, 'r')
             archiveContent = self.getArchiveContentName(z.namelist(), filePath)
-            return StringIO.StringIO(z.read(archiveContent)\
+            return io.StringIO(z.read(archiveContent)\
                 .decode(self.ENCODING))
         elif (self.fileType == '.gz'
             or not self.fileType and filePath.endswith('.gz')):
             import gzip
-            import StringIO
+            import io
             z = gzip.GzipFile(filePath, 'r')
-            return StringIO.StringIO(z.read().decode(self.ENCODING))
+            return io.StringIO(z.read().decode(self.ENCODING))
         else:
             import codecs
             return codecs.open(filePath, 'r', self.ENCODING)

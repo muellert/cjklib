@@ -26,7 +26,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import codecs
 import sys
 import re
@@ -47,7 +47,7 @@ MAX_ENTRIES = 100
 
 def decompositionEntryPreparator(entryList):
     columns = ['glyph', 'decomposition']
-    entryDict = dict(zip(columns, entryList))
+    entryDict = dict(list(zip(columns, entryList)))
 
     character, glyphIndex = entryDict['glyph'].split('/', 1)
 
@@ -64,7 +64,7 @@ def decompositionEntryPreparator(entryList):
 
 def strokeorderEntryPreparator(entryList):
     columns = ['glyph', 'strokeorder']
-    entryDict = dict(zip(columns, entryList))
+    entryDict = dict(list(zip(columns, entryList)))
 
     character, glyphIndex = entryDict['glyph'].split('/', 1)
     if 'strokeorder' in entryDict:
@@ -74,7 +74,7 @@ def strokeorderEntryPreparator(entryList):
 
 def localeEntryPreparator(entryList):
     columns = ['glyph', 'locale']
-    entryDict = dict(zip(columns, entryList))
+    entryDict = dict(list(zip(columns, entryList)))
 
     character, glyphIndex = entryDict['glyph'].split('/', 1)
 
@@ -120,13 +120,13 @@ def getDataSetIterator(name):
         queryDict.update(parameter)
 
         query = QUERY_URL % queryDict
-        query = urllib.quote(query, safe='/:=').replace('%', '-')
+        query = urllib.parse.quote(query, safe='/:=').replace('%', '-')
         logging.info("Opening %r" % query)
         try:
-            f = codecReader(urllib.urlopen(query))
+            f = codecReader(urllib.request.urlopen(query))
         except IOError:
             # Try to catch time out
-            f = codecReader(urllib.urlopen(query))
+            f = codecReader(urllib.request.urlopen(query))
 
         lineCount = 0
         line = f.readline()
@@ -153,15 +153,15 @@ def main():
     logging.basicConfig(level=logging.DEBUG)
 
     if len(sys.argv) != 2:
-        print """usage: python export.py DATA_SET
+        print("""usage: python export.py DATA_SET
 Exports a data set from characterdb.cjklib.org and prints a CSV list to stdout.
 
-Available data sets:"""
-        print "\n".join(('  ' + name) for name in DATA_SETS.keys())
+Available data sets:""")
+        print("\n".join(('  ' + name) for name in list(DATA_SETS.keys())))
         sys.exit(1)
 
     for a in getDataSetIterator(sys.argv[1].lower()):
-        print ','.join(('"%s"' % cell) for cell in a).encode('utf8')
+        print(','.join(('"%s"' % cell) for cell in a).encode('utf8'))
 
 
 if __name__ == "__main__":

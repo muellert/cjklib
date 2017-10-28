@@ -63,7 +63,7 @@ A lookup table for supported dictionaries containing the database table name and
 reading type.
 """
 
-NON_PINYIN_MAPPING = {u'，': u' , ', u'・': u' · '}
+NON_PINYIN_MAPPING = {'，': ' , ', '・': ' · '}
 """Mapping of non-Pinyin entities regarded as correct."""
 
 # get local language and output encoding
@@ -148,9 +148,9 @@ def checkCharacterReading(dictionary, readingName, readingOptions={},
             operator = getReadingOperator(readingName, readingOptions)
             entities = operator.decompose(entry.Reading)
         except exception.DecompositionError:
-            print ("WARNING: can't parse line '%s', '%s', '%s'"
+            print(("WARNING: can't parse line '%s', '%s', '%s'"
                 % (entry.HeadwordTraditional, entry.HeadwordSimplified,
-                    entry.Reading)).encode(default_encoding)
+                    entry.Reading)).encode(default_encoding))
             continue
 
         entitiesFiltered = []
@@ -161,9 +161,9 @@ def checkCharacterReading(dictionary, readingName, readingOptions={},
 
         if (len(entitiesFiltered) != len(entry.HeadwordTraditional)) \
             or (len(entitiesFiltered) != len(entry.HeadwordSimplified)):
-            print ("WARNING: can't parse line '%s', '%s', '%s'"
+            print(("WARNING: can't parse line '%s', '%s', '%s'"
                 % (entry.HeadwordTraditional, entry.HeadwordSimplified,
-                    entry.Reading)).encode(default_encoding)
+                    entry.Reading)).encode(default_encoding))
             continue
 
         for i, entity in enumerate(entitiesFiltered):
@@ -182,9 +182,9 @@ def checkCharacterReading(dictionary, readingName, readingOptions={},
 
                         if readingList and not hasReading(entity, readingList,
                             readingName, ignoreFifthTone):
-                            print (char + " " + entity + ", known readings: " \
+                            print((char + " " + entity + ", known readings: " \
                                 + ', '.join(readingList) + "; for headword '" \
-                                + headword + "'").encode(default_encoding)
+                                + headword + "'").encode(default_encoding))
                     except exception.NoInformationError:
                         pass
             else:
@@ -194,24 +194,24 @@ def checkCharacterReading(dictionary, readingName, readingOptions={},
                 if entry.HeadwordTraditional[i] != entity \
                     and (entry.HeadwordTraditional[i] not in NON_PINYIN_MAPPING \
                     or NON_PINYIN_MAPPING[entry.HeadwordTraditional[i]] != entity):
-                    print ("WARNING: invalid mapping of entity '" \
+                    print(("WARNING: invalid mapping of entity '" \
                         + entry.HeadwordTraditional[i] + "' to '" + entity \
                         + "'; for headword '" + headword + "'")\
-                        .encode(default_encoding)
+                        .encode(default_encoding))
                 elif entry.HeadwordSimplified[i] != entity \
                     and (entry.HeadwordSimplified[i] not in NON_PINYIN_MAPPING \
                     or NON_PINYIN_MAPPING[entry.HeadwordSimplified[i]] != entity):
-                    print ("WARNING: invalid mapping of entity '" \
+                    print(("WARNING: invalid mapping of entity '" \
                         + entry.HeadwordSimplified[i] + "' to '" + entity \
                         + "'; for headword '" + headword + "'")\
-                        .encode(default_encoding)
+                        .encode(default_encoding))
 
 def checkCharacterVariants(dictionary):
     for entry in iterDictionary(dictionary):
         if len(entry.HeadwordTraditional) != len(entry.HeadwordSimplified):
-            print ("WARNING: different string length '%s', '%s', '%s'"
+            print(("WARNING: different string length '%s', '%s', '%s'"
                 % (entry.HeadwordTraditional, entry.HeadwordSimplified,
-                    entry.Reading)).encode(default_encoding)
+                    entry.Reading)).encode(default_encoding))
             continue
 
         if entry.HeadwordTraditional == entry.HeadwordSimplified:
@@ -222,15 +222,15 @@ def checkCharacterVariants(dictionary):
             if entry.HeadwordSimplified[idx] not in mapping:
                 headword = "%s/%s" % (entry.HeadwordTraditional,
                     entry.HeadwordSimplified)
-                print (char + ", known mappings: " + ', '.join(mapping) \
+                print((char + ", known mappings: " + ', '.join(mapping) \
                     + "; for headword '" + headword + "'").encode(
-                        default_encoding)
+                        default_encoding))
 
 def usage():
     """
     Prints the usage for this script.
     """
-    print """Usage: checkcedict.py COMMAND
+    print("""Usage: checkcedict.py COMMAND
 checkcedict.py provides a simple script to check the consistency of CEDICT
 compatible dictionaries (CEDICT, HanDeDict).
 
@@ -241,7 +241,7 @@ General commands:
   -w, --set-dictionary=DICTIONARY
                              set dictionary
   --ignore-fifth             ignore inconsistent mapping if target reading has
-                               fifth tone"""
+                               fifth tone""")
 
 def main():
     # parse command line parameters
@@ -256,10 +256,10 @@ def main():
 
     # get default dictionary
     dictionaryDic = {}
-    for dictionary in DICTIONARY_READING.keys():
+    for dictionary in list(DICTIONARY_READING.keys()):
         dictionaryDic[dictionary.lower()] = dictionary
 
-    dictionary = DICTIONARY_READING.keys()[0]
+    dictionary = list(DICTIONARY_READING.keys())[0]
     ignoreFifthTone = False
     # if True, no error will be reported when tone shifts to neutral tone
     checkReading = False
@@ -267,7 +267,7 @@ def main():
 
     # start to check parameters
     if len(opts) == 0:
-        print "use parameter -h for a short summary on supported functions"
+        print("use parameter -h for a short summary on supported functions")
     for o, a in opts:
         a = a.decode(default_encoding)
         # help screen
@@ -276,10 +276,10 @@ def main():
             sys.exit()
         # setting of dictionary
         elif o in ("-w", "--set-dictionary"):
-            if a.lower() in dictionaryDic.keys():
+            if a.lower() in list(dictionaryDic.keys()):
                 dictionary = a
             else:
-                print "not a valid dictionary"
+                print("not a valid dictionary")
         # check reading
         elif o in ("--ignore-fifth"):
             ignoreFifthTone = True
@@ -291,7 +291,7 @@ def main():
             checkVariants = True
 
     if checkReading or checkVariants:
-        print "Checking " + dictionary
+        print("Checking " + dictionary)
 
     if checkReading:
         reading, readingOptions \

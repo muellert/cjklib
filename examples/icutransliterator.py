@@ -42,7 +42,7 @@ class ReadingTransliterator(icu.Transliterator):
             toReading, **options)
 
     def handleTransliterate(self, text, position, complete):
-        substring = unicode(text[position.start:position.limit])
+        substring = str(text[position.start:position.limit])
 
         converted = self._conv.convert(substring)
         text[position.start:position.limit] = converted
@@ -83,14 +83,14 @@ def main():
     _id = ReadingTransliterator.register('Jyutping', 'CantoneseYale',
         variant='highfalling', yaleFirstTone='1stToneFalling',
         registerInverse=True)
-    print "Registered transform %s" % _id
+    print("Registered transform %s" % _id)
 
     #r = icu.Transliterator.createInstance("NumericPinyin-Latin",
     r = icu.Transliterator.createInstance(_id,
         icu.UTransDirection.UTRANS_FORWARD)
 
-    print ("In:  %s" % text).encode(encoding)
-    print ("Out: %s" % r.transliterate(text)).encode(encoding)
+    print(("In:  %s" % text).encode(encoding))
+    print(("Out: %s" % r.transliterate(text)).encode(encoding))
 
     #text = u'hèunggóng fògeih daaihhohk'
     #print r.createInverse().transliterate(text).encode(encoding)

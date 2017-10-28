@@ -25,7 +25,7 @@ import os
 import logging
 import glob
 import operator
-from itertools import imap
+
 
 from sqlalchemy import MetaData, Table, engine_from_config
 from sqlalchemy.sql import text
@@ -67,7 +67,7 @@ def getDBConnector(configuration=None, projectName='cjklib'):
     """
     global _dbconnectInst, _dbconnectInstSettings
     # allow single string and interpret as url
-    if isinstance(configuration, basestring):
+    if isinstance(configuration, str):
         configuration = {'sqlalchemy.url': configuration}
 
     elif not configuration:
@@ -170,7 +170,7 @@ class DatabaseConnector(object):
         """
         if not configuration:
             configuration = {}
-        elif isinstance(configuration, basestring):
+        elif isinstance(configuration, str):
             # backwards compatibility to option databaseUrl
             configuration = {'sqlalchemy.url': configuration}
         else:
@@ -189,7 +189,7 @@ class DatabaseConnector(object):
         self.databaseUrl = configuration['sqlalchemy.url']
         """Database url"""
         registerUnicode = configuration.pop('registerUnicode', False)
-        if isinstance(registerUnicode, basestring):
+        if isinstance(registerUnicode, str):
             registerUnicode = (registerUnicode.lower()
                 in ['1', 'yes', 'true', 'on'])
         self.registerUnicode = registerUnicode
@@ -277,8 +277,8 @@ class DatabaseConnector(object):
         engines.
         """
         if self.engine.name == 'sqlite':
-            uUmlaut = self.selectScalar(text(u"SELECT lower('Ü');"))
-            if uUmlaut != u'ü':
+            uUmlaut = self.selectScalar(text("SELECT lower('Ü');"))
+            if uUmlaut != 'ü':
                 # register own Unicode aware functions
                 con = self.connection.connection
                 con.create_function("lower", 1, lambda s: s and s.lower())
@@ -300,7 +300,7 @@ class DatabaseConnector(object):
         """
         # get views that are currently not (well) supported by SQLalchemy
         #   http://www.sqlalchemy.org/trac/ticket/812
-        schemas = [self._mainSchema] + self.attached.values()
+        schemas = [self._mainSchema] + list(self.attached.values())
 
         if self.engine.name == 'mysql':
             views = []
@@ -378,7 +378,7 @@ class DatabaseConnector(object):
         """
         tables = set(self._getViews())
         tables.update(self.engine.table_names(schema=self._mainSchema))
-        for schema in self.attached.values():
+        for schema in list(self.attached.values()):
             tables.update(self.engine.table_names(schema=schema))
 
         return tables
@@ -426,7 +426,7 @@ class DatabaseConnector(object):
         if hasTable(tableName, schema=self._mainSchema):
             return self._mainSchema
         else:
-            for schema in self.attached.values():
+            for schema in list(self.attached.values()):
                 if hasTable(tableName, schema=schema):
                     return schema
         return None
@@ -522,7 +522,7 @@ class DatabaseConnector(object):
         :return: an iterator of scalars
         """
         result = self.execute(request)
-        return imap(self._decode, imap(operator.itemgetter(0), result))
+        return map(self._decode, map(operator.itemgetter(0), result))
 
     def selectRow(self, request):
         """
@@ -557,4 +557,4 @@ class DatabaseConnector(object):
         :return: an iterator of tuples
         """
         result = self.execute(request)
-        return imap(self._decode, result)
+        return map(self._decode, result)
