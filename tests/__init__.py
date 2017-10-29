@@ -31,7 +31,8 @@ except ImportError:
     def attr(attrName):
         return lambda x: x
 
-class NeedsDatabaseTest(object):
+
+class TestNeedsDatabaseTest(object):
     """Base class for unit test with database access."""
 
     def setUp(self):
@@ -50,6 +51,7 @@ class CacheDict(dict):
     def __init__(self, cachedDict, *args, **options):
         dict.__init__(self, *args, **options)
         self.cachedDict = cachedDict
+
     def __getitem__(self, key):
         try:
             return dict.__getitem__(self, key)
@@ -94,6 +96,7 @@ class EngineMock(object):
         self._engine = engine
         self.mockTables = mockTables or []
         self.mockNonTables = mockNonTables or []
+
     def has_table(self, table, *args, **kwargs):
         if table in self.mockTables:
             return True
