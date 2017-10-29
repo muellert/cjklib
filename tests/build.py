@@ -13,7 +13,7 @@
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with cjklib.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+# along with cjklib.  If not, see <http://www.gnu.org/licenses/>.
 
 """
 Unit tests for :mod:`cjklib.build.builder`.
@@ -130,11 +130,11 @@ class TableBuilderTest:
                     # make sure table exists (others might have been created)
                     tables = set(
                         self.dbInstances[databasePath].db.getTableNames())
-                    self.assert_(self.BUILDER.PROVIDES in tables,
+                    self.assertTrue(self.BUILDER.PROVIDES in tables,
                         "Table '%s' not found in '%s'" \
                             % (self.BUILDER.PROVIDES, "', '".join(tables)))
                     # make sure depends are removed
-                    self.assert_(len(tables &amp; set(self.BUILDER.DEPENDS)) == 0)
+                    self.assertTrue(len(tables & set(self.BUILDER.DEPENDS)) == 0)
                 except KeyboardInterrupt:
                     try:
                         # remove temporary tables
@@ -144,8 +144,7 @@ class TableBuilderTest:
                             [self.BUILDER.PROVIDES])
                     except KeyboardInterrupt:
                         import sys
-                        print &gt;&gt; sys.stderr, \
-                            "Interrupted while cleaning temporary tables"
+                        print("Interrupted while cleaning temporary tables", file=sys.stderr)
                         raise
                     raise
 
@@ -154,7 +153,7 @@ class TableBuilderTest:
                     [self.BUILDER.PROVIDES])
 
                 tables = self.dbInstances[databasePath].db.getTableNames()
-                self.assert_(len(tables) == 0)
+                self.assertTrue(len(tables) == 0)
 
 
 #class TableBuilderTestCaseCheck(unittest.TestCase):
@@ -194,7 +193,7 @@ class TableBuilderTest:
 
 
 class UnihanBuilderTest(TableBuilderTest, unittest.TestCase):
-    # don't do a wide build for MySQL, which has no support for &gt; BMP
+    # don't do a wide build for MySQL, which has no support for > BMP
     def removeMySQL(databaseUrls):
         return [url for url in databaseUrls if not url.startswith('mysql://')]
 
@@ -205,7 +204,7 @@ class UnihanBuilderTest(TableBuilderTest, unittest.TestCase):
 
 
 class MysqlUnihanBuilderTest(TableBuilderTest, unittest.TestCase):
-    # don't do a wide build for MySQL, which has no support for &gt; BMP
+    # don't do a wide build for MySQL, which has no support for > BMP
     def filterMySQL(databaseUrls):
         return [url for url in databaseUrls if url.startswith('mysql://')]
 
@@ -215,7 +214,7 @@ class MysqlUnihanBuilderTest(TableBuilderTest, unittest.TestCase):
 
 
 class Kanjidic2BuilderTest(TableBuilderTest, unittest.TestCase):
-    # don't do a wide build for MySQL, which has no support for &gt; BMP
+    # don't do a wide build for MySQL, which has no support for > BMP
     def removeMySQL(databaseUrls):
         return [url for url in databaseUrls if not url.startswith('mysql://')]
 
@@ -225,7 +224,7 @@ class Kanjidic2BuilderTest(TableBuilderTest, unittest.TestCase):
 
 
 class MysqlKanjidic2BuilderTest(TableBuilderTest, unittest.TestCase):
-    # don't do a wide build for MySQL, which has no support for &gt; BMP
+    # don't do a wide build for MySQL, which has no support for > BMP
     def filterMySQL(databaseUrls):
         return [url for url in databaseUrls if url.startswith('mysql://')]
 
@@ -235,7 +234,7 @@ class MysqlKanjidic2BuilderTest(TableBuilderTest, unittest.TestCase):
 
 
 class CharacterVariantBuilderTest(TableBuilderTest, unittest.TestCase):
-    # don't do a wide build for MySQL, which has no support for &gt; BMP
+    # don't do a wide build for MySQL, which has no support for > BMP
     def removeMySQL(databaseUrls):
         return [url for url in databaseUrls if not url.startswith('mysql://')]
 
@@ -245,7 +244,7 @@ class CharacterVariantBuilderTest(TableBuilderTest, unittest.TestCase):
 
 
 class MysqlCharacterVariantBuilderTest(TableBuilderTest, unittest.TestCase):
-    # don't do a wide build for MySQL, which has no support for &gt; BMP
+    # don't do a wide build for MySQL, which has no support for > BMP
     def filterMySQL(databaseUrls):
         return [url for url in databaseUrls if url.startswith('mysql://')]
 
