@@ -12,6 +12,8 @@ VERSION = str(cjklib.__version__)
 URL = cjklib.__url__
 LICENSE = cjklib.__license__
 
+tests_require = ['pytest', 'tox']
+
 setup(name='cjklib',
     version=VERSION,
     description='Han character library for CJKV languages',
@@ -31,6 +33,8 @@ setup(name='cjklib',
             'cjknife = cjklib.cjknife:main',
         ],
     },
+    zip_safe=False,
+    tests_require = tests_require,
     install_requires="SQLAlchemy >= 1.0.15",
     license=LICENSE,
     classifiers=['Topic :: Text Processing :: Linguistic',
