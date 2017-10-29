@@ -99,7 +99,7 @@ __version__ = '0.3.3'
 __author__ = 'Christoph Burgmer <cburgmer@ira.uka.de>'
 """The primary author of cjklib"""
 
-__url__ = 'http://cjklib.org'
+__url__ = 'https://github.com/cburgmer/cjklib'
 """The URL for cjklib's homepage"""
 
 __license__ = 'LGPL'
