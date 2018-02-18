@@ -50,7 +50,8 @@ import re
 import os
 import types
 import locale
-import urllib.request, urllib.parse, urllib.error
+import tempfile
+import requests
 import urllib.parse
 from datetime import datetime, date, time
 from optparse import OptionParser, OptionGroup, Values
@@ -154,8 +155,40 @@ def getDownloader(dictionaryName, **options):
     return downloaderCls(**options)
 
 
-class UserAgentURLOpener(urllib.request.FancyURLopener):
-    version="Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
+user_agent="Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
+
+
+def new_urlretrieve(url, filename=None, reporthook=None, data=None):
+    """Simulate some of urllib.request.urlretrieve from Python2 for Python3.
+    """
+    handle = None
+    fn = filename
+    count = 0
+    sizeread = 0
+    cl = None
+    if fn:
+        handle = open(fn, "wb")
+    else:
+        handle, fn = tempfile.mkstemp(prefix="cjklib", suffix=".data")
+    result = None
+    if not data:
+        result = requests.get(url, stream=True)
+    else:
+        result = requests.post(url, stream=True, data=data)
+    try:
+        cl = int(result.headers['Content-Length'])
+    except:
+        cl = -1
+    for chunk in result.iter_content(chunk_size=65536):
+        if chunk:
+            count += 1
+            sizeread += len(chunk)
+            handle.write(chunk)
+            if reporthook:
+                reporthook(count, sizeread, cl)
+    handle.close()
+    return fn, result.headers
+
 
 #}
 #{ Dictionary classes
@@ -185,8 +218,8 @@ class DownloaderBase(object):
 
         if not self.quiet: warn("Sending HEAD request to %s..." % link,
             endline=False)
-        response = urllib.request.urlopen(link)
-        lastModified = response.info().getheader('Last-Modified')
+        response = requests.get(link, headers={'user-agent': user_agent})
+        lastModified = response.headers['Last-Modified']
         if not self.quiet: warn("Done")
         if lastModified:
             return datetime.strptime(lastModified, '%a, %d %b %Y %H:%M:%S %Z')
@@ -225,9 +258,6 @@ class DownloaderBase(object):
         else:
             fileName = originalFileName
 
-        # Fake browser to cheat bad webservers
-        urllib.request._urlopener = UserAgentURLOpener()
-
         if not self.quiet:
             version = self.getVersion()
             if version:
@@ -235,10 +265,10 @@ class DownloaderBase(object):
             else:
                 warn('Unable to determine version')
             warn("Downloading %s..." % link)
-            path, _ = urllib.request.urlretrieve(link, fileName, progress)
+            path, _ = new_urlretrieve(link, fileName, progress)
             warn("Saved as %s" % path)
         else:
-            path, _ = urllib.request.urlretrieve(link, fileName)
+            path, _ = new_urlretrieve(link, fileName)
 
         return path
 
@@ -275,7 +305,7 @@ class PageDownloaderBase(DownloaderBase):
     def getDownloadPage(self):
         if not self.quiet: warn("Getting download page %s..."
             % self.DEFAULT_DOWNLOAD_PAGE, endline=False)
-        f = urllib.request.urlopen(self.DEFAULT_DOWNLOAD_PAGE)
+        f = requests.get(self.DEFAULT_DOWNLOAD_PAGE)
         downloadPage = f.read()
         f.close()
         if not self.quiet: warn("done")
