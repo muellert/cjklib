@@ -73,7 +73,7 @@ def getConfigSettings(section, projectName='cjklib'):
     h = configparser.SafeConfigParser.optionxform
     try:
         configparser.SafeConfigParser.optionxform = lambda self, x: x
-        config = configparser.SafeConfigParser()
+        config = configparser.ConfigParser()
         homeDir = os.path.expanduser('~')
 
         configFiles = []
