@@ -2031,8 +2031,6 @@ class WadeGilesOperator(TonalRomanisationOperator):
     FROM_SUPERSCRIPT = dict([(value, key) \
         for key, value in TO_SUPERSCRIPT.items()])
     """Mapping of superscript numbers to tone numbers."""
-    del value
-    del key
 
     APOSTROPHE_LIST = ["'", '’', '´', '‘', '`', 'ʼ', 'ˈ', '′', 'ʻ']
     """List of apostrophes used in guessing routine."""
@@ -2084,7 +2082,6 @@ class WadeGilesOperator(TonalRomanisationOperator):
     - final consonants n/ng and rh (for êrh), h (for -ih, -üeh),
     - tone numbers.
     """
-    del a
 
     def __init__(self, **options):
         """
