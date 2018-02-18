@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
 from ez_setup import use_setuptools
 use_setuptools()
 from setuptools import setup
@@ -13,6 +14,7 @@ URL = cjklib.__url__
 LICENSE = cjklib.__license__
 
 tests_require = ['pytest', 'tox']
+
 
 setup(name='cjklib',
     version=VERSION,
@@ -34,9 +36,9 @@ setup(name='cjklib',
         ],
     },
     zip_safe=False,
-    setup_requires=['pytest-runner',],
-    tests_require = tests_require,
-    install_requires="SQLAlchemy >= 1.0.15",
+    setup_requires=['pytest-runner', ],
+    tests_require=tests_require,
+    install_requires=["SQLAlchemy>=1.0.15", "requests"],
     license=LICENSE,
     classifiers=['Topic :: Text Processing :: Linguistic',
         'Environment :: Console',
@@ -51,4 +53,5 @@ setup(name='cjklib',
         'Natural Language :: Japanese',
         'Natural Language :: Korean',
         'Natural Language :: Vietnamese',
-        ])
+        ]
+ )
