@@ -66,6 +66,8 @@ from cjklib import dbconnector
 from cjklib import build
 from cjklib.util import cachedmethod, ExtendedOption, getConfigSettings
 
+progressTick = 0
+
 try:
     from progressbar import Percentage, Bar, ETA, FileTransferSpeed, ProgressBar
     def progress(i, chunkSize, total):
