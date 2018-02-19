@@ -48,7 +48,7 @@ __all__ = [
 import sys
 import re
 import os
-import types
+# import types
 import locale
 import tempfile
 import requests
@@ -61,38 +61,13 @@ from sqlalchemy import select
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import OperationalError
 
+from tqdm import tqdm
+
 import cjklib
 from cjklib import dbconnector
 from cjklib import build
 from cjklib.util import cachedmethod, ExtendedOption, getConfigSettings
 
-progressTick = 0
-
-try:
-    from progressbar import Percentage, Bar, ETA, FileTransferSpeed, ProgressBar
-    def progress(i, chunkSize, total):
-        global pbar
-        if i == 0:
-            widgets = [Percentage(), ' ', Bar(), ' ', ETA(), ' ',
-                FileTransferSpeed()]
-            pbar = ProgressBar(widgets=widgets, maxval=total/chunkSize+1)
-            pbar.start()
-        pbar.update(min(i, total/chunkSize+1))
-
-except ImportError:
-    def progress(i, chunkSize, total):
-        global progressTick
-        terminalWidth = 80
-        if i == 0:
-            progressTick = 0
-            tick = 0
-        else:
-            tick = min(int(terminalWidth * (i * chunkSize) / total),
-                terminalWidth)
-        while progressTick < tick:
-            sys.stdout.write('#')
-            progressTick += 1
-        sys.stdout.flush()
 
 def warn(message, endline=True):
     """
@@ -102,7 +77,8 @@ def warn(message, endline=True):
     :param message: message to print
     """
     print(message.encode(locale.getpreferredencoding(), 'replace'), end=' ')
-    if endline: print()
+    if endline:
+        print()
 
 #{ Access methods
 
@@ -160,19 +136,18 @@ def getDownloader(dictionaryName, **options):
 user_agent="Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
 
 
-def new_urlretrieve(url, filename=None, reporthook=None, data=None):
+def new_urlretrieve(url, filename=None, progress=False, data=None):
     """Simulate some of urllib.request.urlretrieve from Python2 for Python3.
     """
     handle = None
     fn = filename
-    count = 0
-    sizeread = 0
     cl = None
     if fn:
         handle = open(fn, "wb")
     else:
         handle, fn = tempfile.mkstemp(prefix="cjklib", suffix=".data")
     result = None
+    chunksize = 1024
     if not data:
         result = requests.get(url, stream=True)
     else:
@@ -181,13 +156,15 @@ def new_urlretrieve(url, filename=None, reporthook=None, data=None):
         cl = int(result.headers['Content-Length'])
     except:
         cl = -1
-    for chunk in result.iter_content(chunk_size=65536):
-        if chunk:
-            count += 1
-            sizeread += len(chunk)
-            handle.write(chunk)
-            if reporthook:
-                reporthook(count, sizeread, cl)
+    if progress:
+        for chunk in tqdm(iterable=result.iter_content(chunk_size=chunksize),
+                          total=cl/chunksize, unit="KB"):
+            if chunk:
+                handle.write(chunk)
+    else:
+        for chunk in result.iter_content(chunk_size=65536):
+            if chunk:
+                handle.write(chunk)
     handle.close()
     return fn, result.headers
 
@@ -221,7 +198,11 @@ class DownloaderBase(object):
         if not self.quiet: warn("Sending HEAD request to %s..." % link,
             endline=False)
         response = requests.get(link, headers={'user-agent': user_agent})
-        lastModified = response.headers['Last-Modified']
+        # import pdb; pdb.set_trace()
+        try:
+            lastModified = response.headers['Last-Modified']
+        except:
+            lastModified = response.headers['Date']
         if not self.quiet: warn("Done")
         if lastModified:
             return datetime.strptime(lastModified, '%a, %d %b %Y %H:%M:%S %Z')
@@ -267,7 +248,7 @@ class DownloaderBase(object):
             else:
                 warn('Unable to determine version')
             warn("Downloading %s..." % link)
-            path, _ = new_urlretrieve(link, fileName, progress)
+            path, _ = new_urlretrieve(link, fileName, progress=True)
             warn("Saved as %s" % path)
         else:
             path, _ = new_urlretrieve(link, fileName)
@@ -308,8 +289,7 @@ class PageDownloaderBase(DownloaderBase):
         if not self.quiet: warn("Getting download page %s..."
             % self.DEFAULT_DOWNLOAD_PAGE, endline=False)
         f = requests.get(self.DEFAULT_DOWNLOAD_PAGE)
-        downloadPage = f.read()
-        f.close()
+        downloadPage = f.text
         if not self.quiet: warn("done")
 
         return downloadPage
