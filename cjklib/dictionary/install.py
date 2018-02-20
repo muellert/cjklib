@@ -198,7 +198,6 @@ class DownloaderBase(object):
         if not self.quiet: warn("Sending HEAD request to %s..." % link,
             endline=False)
         response = requests.get(link, headers={'user-agent': user_agent})
-        # import pdb; pdb.set_trace()
         try:
             lastModified = response.headers['Last-Modified']
         except:
