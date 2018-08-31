@@ -289,6 +289,6 @@ for builderClass in DatabaseBuilder.getTableBuilderClasses(
     resolveConflicts=False):
     testClassName = '%sTest' % builderClass.__name__
     if testClassName not in globals():
-        globals()[testClassName] = types.ClassType(testClassName,
+        globals()[testClassName] = type(testClassName,
             (TableBuilderTest, unittest.TestCase), {'BUILDER': builderClass})
     del testClassName
