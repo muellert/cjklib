@@ -33,6 +33,7 @@ import csv
 
 from sqlalchemy.types import String, Text
 
+
 #{ Configuration and file access
 
 def locateProjectFile(relPath, projectName='cjklib'):
@@ -56,6 +57,7 @@ def locateProjectFile(relPath, projectName='cjklib'):
         return resource_filename(Requirement.parse(projectName), relPath)
     except (DistributionNotFound, ValueError):
         pass
+
 
 def getConfigSettings(section, projectName='cjklib'):
     """
@@ -119,6 +121,7 @@ def getConfigSettings(section, projectName='cjklib'):
 
     return configuration
 
+
 def getSearchPaths(projectName='cjklib'):
     """
     Gets a list of search paths for the given project.
@@ -179,6 +182,7 @@ def getSearchPaths(projectName='cjklib'):
 
     return searchPath
 
+
 def getDataPath():
     """
     Gets the path to packaged data.
@@ -195,6 +199,7 @@ def getDataPath():
 
     return dataDir
 
+
 #{ Unicode support enhancement
 
 # define our own titlecase methods, as the Python implementation is currently
@@ -205,6 +210,8 @@ _FIRST_NON_CASE_IGNORABLE = re.compile(r"(?u)([.˳｡￮₀ₒ]?\W*)(\w)(.*)$")
 Regular expression matching the first alphabetic character. Include GR neutral
 tone forms.
 """
+
+
 def titlecase(strng):
     """
     Returns the string (without "word borders") in titlecase.
@@ -233,6 +240,7 @@ def titlecase(strng):
         tonal, firstChar, rest = matchObj.groups()
         return tonal + firstChar.upper() + rest
 
+
 def istitlecase(strng):
     """
     Checks if the given string is in titlecase.
@@ -244,6 +252,7 @@ def istitlecase(strng):
         L{titlecase()}.
     """
     return titlecase(strng) == strng
+
 
 if sys.maxunicode < 0x10000:
     def fromCodepoint(codepoint):
@@ -347,6 +356,7 @@ else:
         """
         return list(string)
 
+
 #{ Helper methods
 
 def cross(*args):
@@ -362,17 +372,19 @@ def cross(*args):
         ans = [x+[y] for x in ans for y in arg]
     return ans
 
+
 def crossDict(*args):
     """Builds a cross product of the given dicts."""
     def joinDict(a, b):
         a = a.copy()
-        a.update(y)
+        a.update(b)
         return a
 
     ans = [{}]
     for arg in args:
         ans = [joinDict(x, y) for x in ans for y in arg]
     return ans
+
 
 #{ Helper classes
 
@@ -404,6 +416,7 @@ class CharacterRangeIterator(object):
         else:
             self._curRange = self._popRange()
         return fromCodepoint(curIndex)
+
 
 #{ Library extensions
 
@@ -556,6 +569,7 @@ class ExtendedOption(Option):
             Option.take_action(
                 self, action, dest, opt, value, values, parser)
 
+
 #{ SQLAlchemy column types
 
 class _CollationMixin(object):
@@ -580,6 +594,7 @@ class _CollationMixin(object):
 
     def get_search_list(self):
         return tuple()
+
 
 class CollationString(_CollationMixin, String):
     def __init__(self, length=None, collation=None, **kwargs):
@@ -618,6 +633,7 @@ class CollationText(_CollationMixin, Text):
         else:
             return self._extend("TEXT")
 
+
 #{ Decorators
 
 def cachedproperty(fget):
@@ -638,283 +654,128 @@ def cachedproperty(fget):
     return property(fget_wrapper, fdel=fdel, doc=fget.__doc__)
 
 
-if sys.version_info >= (2, 5):
-    import functools
-    class cachedmethod(object):
-        """
-        Decorate a method to memoize its return value. Only applicable for
-        methods without arguments.
-        """
-        def __init__(self, fget):
-            self.fget = fget
-            self.__doc__ = fget.__doc__
-            self.__name__ = fget.__name__
+assert sys.version_info >= (3, 5)
 
-        def __get__(self, obj, cls):
+import functools
+
+
+class cachedmethod(object):
+    """
+    Decorate a method to memoize its return value. Only applicable for
+    methods without arguments.
+    """
+    def __init__(self, fget):
+        self.fget = fget
+        self.__doc__ = fget.__doc__
+        self.__name__ = fget.__name__
+
+    def __get__(self, obj, cls):
+        @functools.wraps(self.fget)
+        def oneshot(*args, **kwargs):
             @functools.wraps(self.fget)
-            def oneshot(*args, **kwargs):
-                @functools.wraps(self.fget)
-                def memo(*a, **k): return result
-                result = self.fget(*args, **kwargs)
-                # save to instance __dict__
-                args[0].__dict__[self.__name__] = memo
+            def memo(*a, **k):
                 return result
-            return oneshot.__get__(obj, cls)
-else:
-    class cachedmethod(object):
-        """
-        Decorate a method to memoize its return value. Only applicable for
-        methods without arguments.
-        """
-        def __init__(self, fget, doc=None):
-            self.fget = fget
-            self.__doc__ = doc or fget.__doc__
-            self.__name__ = fget.__name__
-
-        def __get__(self, obj, cls):
-            def oneshot(*args, **kwargs):
-                result = self.fget(*args, **kwargs)
-                memo = lambda *a, **k: result
-                memo.__name__ = self.__name__
-                memo.__doc__ = self.__doc__
-                # save to instance __dict__
-                args[0].__dict__[self.__name__] = memo
-                return result
-            oneshot.__name__ = self.__name__
-            oneshot.__doc__ = self.__doc__
-            return oneshot.__get__(obj, cls)
+            result = self.fget(*args, **kwargs)
+            # save to instance __dict__
+            args[0].__dict__[self.__name__] = memo
+            return result
+        return oneshot.__get__(obj, cls)
 
 
-if sys.version_info >= (2, 5):
-    import warnings
-    import functools
+import warnings
 
-    def deprecated(func):
-        """
-        Decorator which can be used to mark functions
-        as deprecated. It will result in a warning being emitted
-        when the function is used.
-        """
-        @functools.wraps(func)
-        def new_func(*args, **kwargs):
-            warnings.warn("Call to deprecated function %s." % func.__name__,
-                category=DeprecationWarning, stacklevel=2)
-            return func(*args, **kwargs)
-        return new_func
-else:
-    import warnings
+def deprecated(func):
+    """
+    Decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emitted
+    when the function is used.
+    """
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        warnings.warn("Call to deprecated function %s." % func.__name__,
+            category=DeprecationWarning, stacklevel=2)
+        return func(*args, **kwargs)
+    return new_func
 
-    def deprecated(func):
-        """
-        Decorator which can be used to mark functions
-        as deprecated. It will result in a warning being emitted
-        when the function is used.
-        """
-        def new_func(*args, **kwargs):
-            warnings.warn("Call to deprecated function %s." % func.__name__,
-                category=DeprecationWarning, stacklevel=2)
-            return func(*args, **kwargs)
-        new_func.__name__ = func.__name__
-        new_func.__doc__ = func.__doc__
-        new_func.__dict__.update(func.__dict__)
-        return new_func
 
 #{ Collection classes
 
-if sys.version_info >= (2, 5):
-    class LazyDict(dict):
-        """A dict that will load entries on-demand."""
-        def __init__(self, creator, *args):
-            dict.__init__(self, *args)
-            self.creator = creator
+class LazyDict(dict):
+    """A dict that will load entries on-demand."""
+    def __init__(self, creator, *args):
+        dict.__init__(self, *args)
+        self.creator = creator
 
-        def __missing__(self, key):
-            self[key] = value = self.creator(key)
-            return value
-else:
-    class LazyDict(dict):
-        """A dict that will load entries on-demand."""
-        def __init__(self, creator):
-            dict.__init__(self, *args)
-            self.creator = creator
+    def __missing__(self, key):
+        self[key] = value = self.creator(key)
+        return value
 
-        def __getitem__(self, key):
-            try:
-                return dict.__getitem__(self, key)
-            except KeyError:
-                self[key] = value = self.creator(key)
-                return value
 
-if sys.version_info >= (2, 6):
-    from collections import MutableMapping
+from collections import MutableMapping
 
-    class OrderedDict(dict, MutableMapping):
+class OrderedDict(dict, MutableMapping):
 
-        # Methods with direct access to underlying attributes
+    # Methods with direct access to underlying attributes
 
-        def __init__(self, *args, **kwds):
-            if len(args) > 1:
-                raise TypeError('expected at 1 argument, got %d', len(args))
-            if not hasattr(self, '_keys'):
-                self._keys = []
-            self.update(*args, **kwds)
+    def __init__(self, *args, **kwds):
+        if len(args) > 1:
+            raise TypeError('expected at 1 argument, got %d', len(args))
+        if not hasattr(self, '_keys'):
+            self._keys = []
+        self.update(*args, **kwds)
 
-        def clear(self):
-            del self._keys[:]
-            dict.clear(self)
+    def clear(self):
+        del self._keys[:]
+        dict.clear(self)
 
-        def __setitem__(self, key, value):
-            if key not in self:
-                self._keys.append(key)
-            dict.__setitem__(self, key, value)
+    def __setitem__(self, key, value):
+        if key not in self:
+            self._keys.append(key)
+        dict.__setitem__(self, key, value)
 
-        def __delitem__(self, key):
-            dict.__delitem__(self, key)
-            self._keys.remove(key)
+    def __delitem__(self, key):
+        dict.__delitem__(self, key)
+        self._keys.remove(key)
 
-        def __iter__(self):
-            return iter(self._keys)
+    def __iter__(self):
+        return iter(self._keys)
 
-        def __reversed__(self):
-            return reversed(self._keys)
+    def __reversed__(self):
+        return reversed(self._keys)
 
-        def popitem(self):
-            if not self:
-                raise KeyError
-            key = self._keys.pop()
-            value = dict.pop(self, key)
-            return key, value
+    def popitem(self):
+        if not self:
+            raise KeyError
+        key = self._keys.pop()
+        value = dict.pop(self, key)
+        return key, value
 
-        def __reduce__(self):
-            items = [[k, self[k]] for k in self]
-            inst_dict = vars(self).copy()
-            inst_dict.pop('_keys', None)
-            return (self.__class__, (items,), inst_dict)
+    def __reduce__(self):
+        items = [[k, self[k]] for k in self]
+        inst_dict = vars(self).copy()
+        inst_dict.pop('_keys', None)
+        return (self.__class__, (items,), inst_dict)
 
-        # Methods with indirect access via the above methods
+    # Methods with indirect access via the above methods
 
-        setdefault = MutableMapping.setdefault
-        update = MutableMapping.update
-        pop = MutableMapping.pop
-        keys = MutableMapping.keys
-        values = MutableMapping.values
-        items = MutableMapping.items
+    setdefault = MutableMapping.setdefault
+    update = MutableMapping.update
+    pop = MutableMapping.pop
+    keys = MutableMapping.keys
+    values = MutableMapping.values
+    items = MutableMapping.items
 
-        def __repr__(self):
-            pairs = ', '.join(map('%r: %r'.__mod__, list(self.items())))
-            return '%s({%s})' % (self.__class__.__name__, pairs)
+    def __repr__(self):
+        pairs = ', '.join(map('%r: %r'.__mod__, list(self.items())))
+        return '%s({%s})' % (self.__class__.__name__, pairs)
 
-        def copy(self):
-            return self.__class__(self)
+    def copy(self):
+        return self.__class__(self)
 
-        @classmethod
-        def fromkeys(cls, iterable, value=None):
-            d = cls()
-            for key in iterable:
-                d[key] = value
-            return d
-
-else:
-    from UserDict import DictMixin
-
-    class OrderedDict(dict, DictMixin):
-
-        def __init__(self, *args, **kwds):
-            if len(args) > 1:
-                raise TypeError('expected at most 1 arguments, got %d'
-                    % len(args))
-            try:
-                self.__end
-            except AttributeError:
-                self.clear()
-            self.update(*args, **kwds)
-
-        def clear(self):
-            self.__end = end = []
-            end += [None, end, end]      # sentinel node for doubly linked list
-            self.__map = {}              # key --> [key, prev, next]
-            dict.clear(self)
-
-        def __setitem__(self, key, value):
-            if key not in self:
-                end = self.__end
-                curr = end[1]
-                curr[2] = end[1] = self.__map[key] = [key, curr, end]
-            dict.__setitem__(self, key, value)
-
-        def __delitem__(self, key):
-            dict.__delitem__(self, key)
-            key, prev, next = self.__map.pop(key)
-            prev[2] = next
-            next[1] = prev
-
-        def __iter__(self):
-            end = self.__end
-            curr = end[2]
-            while curr is not end:
-                yield curr[0]
-                curr = curr[2]
-
-        def __reversed__(self):
-            end = self.__end
-            curr = end[1]
-            while curr is not end:
-                yield curr[0]
-                curr = curr[1]
-
-        def popitem(self, last=True):
-            if not self:
-                raise KeyError('dictionary is empty')
-            if last:
-                key = next(reversed(self))
-            else:
-                key = next(iter(self))
-            value = self.pop(key)
-            return key, value
-
-        def __reduce__(self):
-            items = [[k, self[k]] for k in self]
-            tmp = self.__map, self.__end
-            del self.__map, self.__end
-            inst_dict = vars(self).copy()
-            self.__map, self.__end = tmp
-            if inst_dict:
-                return (self.__class__, (items,), inst_dict)
-            return self.__class__, (items,)
-
-        def keys(self):
-            return list(self)
-
-        setdefault = DictMixin.setdefault
-        update = DictMixin.update
-        pop = DictMixin.pop
-        values = DictMixin.values
-        items = DictMixin.items
-        iterkeys = DictMixin.iterkeys
-        itervalues = DictMixin.itervalues
-        iteritems = DictMixin.iteritems
-
-        def __repr__(self):
-            if not self:
-                return '%s()' % (self.__class__.__name__,)
-            return '%s(%r)' % (self.__class__.__name__, list(self.items()))
-
-        def copy(self):
-            return self.__class__(self)
-
-        @classmethod
-        def fromkeys(cls, iterable, value=None):
-            d = cls()
-            for key in iterable:
-                d[key] = value
-            return d
-
-        def __eq__(self, other):
-            if isinstance(other, OrderedDict):
-                return len(self)==len(other) and \
-                    all(p==q for p, q in  zip(list(self.items()), list(other.items())))
-            return dict.__eq__(self, other)
-
-        def __ne__(self, other):
-            return not self == other
+    @classmethod
+    def fromkeys(cls, iterable, value=None):
+        d = cls()
+        for key in iterable:
+            d[key] = value
+        return d
 
